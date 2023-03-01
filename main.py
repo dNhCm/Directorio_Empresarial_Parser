@@ -7,9 +7,10 @@ from fake_useragent import UserAgent
 from configparser import ConfigParser
 import csv, json
 
-# Global vars
-activities = []
 
+# Global vars
+config = ConfigParser()
+config.read('config.ini')
 
 # Global funcs
 def parse(session: requests.Session, url: str, headers: dict, xpathes: dict) -> dict:
@@ -23,6 +24,15 @@ def parse(session: requests.Session, url: str, headers: dict, xpathes: dict) -> 
 
     return answer
 
+
+def transform(response: dict[str: list[str]]) -> dict[str: str]:
+    for section in response:
+        if not len(response[section]) == 0:
+            response[section] = response[section][0]
+        else: response[section] = ''
+
+    return response
+
 # Tech Classes
 
 class Dispatcher:
@@ -32,8 +42,14 @@ class Dispatcher:
         System.preparation_csvfile()
         System.preparation_datajson()
 
+    @staticmethod
+    def parsing():
+        for activity in activities:
+            activity.main()
+
     def main(self):
         self.start()
+        self.parsing()
 
 
 class System:
@@ -51,9 +67,7 @@ class System:
     def preparation_csvfile():
         with open('data/data.csv', 'w', encoding='windows-1252', newline='') as csvfile:
             csvfile = csv.writer(csvfile)
-            config = ConfigParser()
-            config.read('config.ini')
-            sections = ['activity'] + [section for section in config['COMPANY']]
+            sections = ['activity', 'link'] + [section for section in config['COMPANY']]
             csvfile.writerow(sections)
         logger.info('data.csv was created successfully')
 
@@ -65,15 +79,13 @@ class System:
 
 
 
-class Activity:
-    def __init__(self, site_session: str = None):
+class Activity():
+    def __init__(self, name: str, site_session: str = None):
+        self.name = name
         self.site_session = site_session
-        self.main()
 
     def parse_companies_href(self):
         logger.info('preparating to parsing companies href')
-        config = ConfigParser()
-        config.read('config.ini')
         url = config['PARSE']['url']
         headers = {
             'User-Agent': UserAgent().random
@@ -107,13 +119,11 @@ class Activity:
                 except Exception as ex:
                     errors += 1
                     logger.error(f'error parsing in {page}th page. Error: {ex}')
-                finally: page += 1000
+                finally: page += 719
             else: logger.info('companies href was parsed')
 
     def parse_companies_info(self):
         logger.info('preparating to parsing companies info')
-        config = ConfigParser()
-        config.read('config.ini')
         url = config['PARSE']['main_url']
         headers = {
             'User-Agent': UserAgent().random
@@ -121,7 +131,7 @@ class Activity:
         xpathes = {section: config['COMPANY'][section] for section in config['COMPANY']}
         with open('data/data.json', 'r') as datajson:
             data = json.load(datajson)
-        sections = ['activity'] + [section for section in config['COMPANY']]
+        sections = ['activity', 'link'] + [section for section in config['COMPANY']]
         logger.info('preparating was finished successfully')
         
         logger.info('start to parsing href`s')
@@ -129,8 +139,9 @@ class Activity:
             with requests.Session() as session:
                 response = parse(session=session, url=f'{url}{href}', headers=headers, xpathes=xpathes)
                 req = self.check_for_req(response=response)
-                response = {section: str(response[section])[2:-2] for section in response}
-                response['activity'] = type(self).__name__
+                response = transform(response=response)
+                response['activity'] = self.name
+                response['link'] = f'{url}{href}'
                 if req:
                     with open('data/data.csv', 'a', encoding='windows-1252', newline='') as csvfile:
                         csvfile = csv.DictWriter(csvfile, fieldnames=sections)
@@ -141,8 +152,6 @@ class Activity:
 
     @staticmethod
     def check_for_req(response: dict[str: list[str]]) -> bool:
-        config = ConfigParser()
-        config.read('config.ini')
         req = config['PRIORITY']['req'].split(' ')
 
         for section in response:
@@ -156,13 +165,14 @@ class Activity:
         self.parse_companies_info()
 
 
-
 # Main
 def main():
+    global activities
+    activities = [Activity('Industrial'), Activity('Agro-culture', config['PARSE']['site_session'])]
+
     dp = Dispatcher()
     dp.main()
-    logger.warn('! FINISHED !')
+    logger.info('! FINISHED !')
 
 if __name__ == '__main__':
     main()
-    Activity()
