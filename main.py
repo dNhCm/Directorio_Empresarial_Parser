@@ -189,6 +189,7 @@ class Activity:
             for href in data['companies_href'][activity]:
                 with requests.Session() as session:
                     response = parse(session=session, url=f'{url}{href}', headers=headers, xpathes=xpathes)
+                    print(response)
                     req = self.check_for_req(response=response)
                     response = transform(response=response)
                     response['activity'] = activity
@@ -204,11 +205,14 @@ class Activity:
     @staticmethod
     def check_for_req(response: dict[str: list[str]]) -> bool:
         req = config['PRIORITY']['req'].split(' ')
+        bool = True
 
         for section in response:
-            if section == req:
-                if len(response[section]) == 0: return False
-        else: return True
+            if section in req:
+                if len(response[section]) == 0:
+                    bool = False
+
+        return bool
 
 
 # Main
