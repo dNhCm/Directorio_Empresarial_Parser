@@ -133,7 +133,6 @@ class Activity:
             'User-Agent': UserAgent().random
         }
         xpathes = {'companies_href': config['PARSE']['company_xpath']}
-        logger.info('preparating was finished successfully')
 
         with requests.Session() as session:
             logger.info('session was created')
@@ -151,6 +150,7 @@ class Activity:
 
             page = last_page
             errors = 0
+            logger.info('preparating was finished successfully')
             logger.info('start parsing...')
             while errors < 2:
                 try:
@@ -193,11 +193,13 @@ class Activity:
                     response = transform(response=response)
                     response['activity'] = activity
                     response['link'] = f'{url}{href}'
-                    if req:
+                    if not req:
                         with open('data/data.csv', 'a', encoding='windows-1252', newline='') as csvfile:
                             csvfile = csv.DictWriter(csvfile, fieldnames=sections)
                             csvfile.writerow(response)
-                    else: logger.info(f'doesnt intresting in {href}')
+                    else:
+                        logger.info(f'doesnt intresting in {href}')
+                        continue
                 logger.info(f'parsed {href} href')
             logger.info(f'parsed all of href')
 
