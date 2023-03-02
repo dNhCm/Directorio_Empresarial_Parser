@@ -1,12 +1,15 @@
 
 # Imports
 import logging
+import os
+
 import requests
 from lxml import html
 from fake_useragent import UserAgent
 from configparser import ConfigParser
 import csv, json
 
+from pip._internal.cli.spinners import open_spinner
 
 # Global vars
 config = ConfigParser()
@@ -44,8 +47,8 @@ class Dispatcher:
 
     @staticmethod
     def parsing():
-        for activity in activities:
-            activity.main()
+        Activity = Activity()
+        Activity.main()
 
     def main(self):
         self.start()
@@ -73,16 +76,36 @@ class System:
 
     @staticmethod
     def preparation_datajson():
-        data = {'companies_href': []}
-        with open('data/data.json', 'w') as datajson:
-            json.dump(data, datajson)
+        if not os.path.isfile('data/data.json'):
+            data = {'last_panel_page': {}, 'companies_href': []}
+            with open('data/data.json', 'w') as datajson:
+                json.dump(data, datajson)
 
+    @staticmethod
+    def delete_cache():
+        os.remove(path='data/data.json')
+
+
+class UI:
+    @staticmethod
+    def parse_companies_href(): ...
+
+    def web(self):
+        print(
+            '''
+Какое задание сейчас выберете:
+Спарсить href - 1
+Спарсить существующие href - 2
+Очистить кэш - 3
+            '''
+        )
+
+    def main(self): ...
 
 
 class Activity():
-    def __init__(self, name: str, site_session: str = None):
-        self.name = name
-        self.site_session = site_session
+    def __init__(self):
+        self.site_session = config['PARSE']['site_session']
 
     def parse_companies_href(self):
         logger.info('preparating to parsing companies href')
@@ -95,22 +118,28 @@ class Activity():
 
         with requests.Session() as session:
             logger.info('session was created')
-            if self.site_session != None:
-                cookie = {'domain': 'panel-empresarial.institutofomentomurcia.es', 'name': 'JSESSIONID', 'path': '/IFM-panel-directorio', 'value': self.site_session}
-                session.cookies.set(**cookie)
-                logger.info('agro-cult was initialized')
-            else: logger.info('industry was initialized')
-            pages = parse(session=session, url=f'{url}1', headers=headers, xpathes={'pages': config['PARSE']['pages_xpath']})['pages'][0].split(' ')[-1]
+            cookie = {'domain': 'panel-empresarial.institutofomentomurcia.es', 'name': 'JSESSIONID', 'path': '/IFM-panel-directorio', 'value': self.site_session}
+            session.cookies.set(**cookie)
+            logger.info('logged in was successful')
 
+            pages = parse(session=session, url=f'{url}1', headers=headers, xpathes={'pages': config['PARSE']['pages_xpath']})['pages'][0].split(' ')[-1]
+            activity = parse(session=session, url=f'{url}1', headers=headers, xpathes={'activity': config['PARSE']['activity_xpath']})['activity'][0]
+            try:
+                with open('data/data.json', 'r') as datajson:
+                    last_page = json.load(datajson)['last_panel_page'][activity]
+            except Exception as ex:
+                last_page = 1
+                logger.error(f'may be no last page.. Error: {ex}')
 
             logger.info('start parsing...')
-            for page in pages:
+            for page in range(last_page, pages):
                 try:
                     response = parse(session=session, url=f'{url}{page}', headers=headers, xpathes=xpathes)
                     if len(response['companies_href']) == 0: raise Exception
                     with open('data/data.json', 'r') as datajson:
                         data = json.load(datajson)
-                    data['companies_href'] += response['companies_href']
+                    data['companies_href'][activity] += response['companies_href']
+                    data['last_panel_page'][activity] = page
                     with open('data/data.json', 'w') as datajson:
                         json.dump(data, datajson)
 
@@ -132,20 +161,21 @@ class Activity():
         logger.info('preparating was finished successfully')
         
         logger.info('start to parsing href`s')
-        for href in data['companies_href']:
-            with requests.Session() as session:
-                response = parse(session=session, url=f'{url}{href}', headers=headers, xpathes=xpathes)
-                req = self.check_for_req(response=response)
-                response = transform(response=response)
-                response['activity'] = self.name
-                response['link'] = f'{url}{href}'
-                if req:
-                    with open('data/data.csv', 'a', encoding='windows-1252', newline='') as csvfile:
-                        csvfile = csv.DictWriter(csvfile, fieldnames=sections)
-                        csvfile.writerow(response)
-                else: logger.info(f'doesnt intresting in {href}')
-            logger.info(f'parsed {href} href')
-        logger.info(f'parsed all of href')
+        for activity in data['companies_href']:
+            for href in data['companies_href']['activity']:
+                with requests.Session() as session:
+                    response = parse(session=session, url=f'{url}{href}', headers=headers, xpathes=xpathes)
+                    req = self.check_for_req(response=response)
+                    response = transform(response=response)
+                    response['activity'] = activity
+                    response['link'] = f'{url}{href}'
+                    if req:
+                        with open('data/data.csv', 'a', encoding='windows-1252', newline='') as csvfile:
+                            csvfile = csv.DictWriter(csvfile, fieldnames=sections)
+                            csvfile.writerow(response)
+                    else: logger.info(f'doesnt intresting in {href}')
+                logger.info(f'parsed {href} href')
+            logger.info(f'parsed all of href')
 
     @staticmethod
     def check_for_req(response: dict[str: list[str]]) -> bool:
@@ -164,9 +194,6 @@ class Activity():
 
 # Main
 def main():
-    global activities
-    activities = [Activity('Industrial'), Activity('Agro-culture', config['PARSE']['site_session'])]
-
     dp = Dispatcher()
     dp.main()
     logger.info('! FINISHED !')
