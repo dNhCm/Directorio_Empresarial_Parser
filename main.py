@@ -100,11 +100,11 @@ class Activity():
                 session.cookies.set(**cookie)
                 logger.info('agro-cult was initialized')
             else: logger.info('industry was initialized')
+            pages = parse(session=session, url=f'{url}1', headers=headers, xpathes={'pages': config['PARSE']['pages_xpath']})['pages'][0].split(' ')[-1]
 
-            page = 1
-            errors = 0
+
             logger.info('start parsing...')
-            while errors < 2:
+            for page in pages:
                 try:
                     response = parse(session=session, url=f'{url}{page}', headers=headers, xpathes=xpathes)
                     if len(response['companies_href']) == 0: raise Exception
@@ -114,12 +114,9 @@ class Activity():
                     with open('data/data.json', 'w') as datajson:
                         json.dump(data, datajson)
 
-                    errors = 0
                     logger.info(f'{page}th page was parsed succesfully')
                 except Exception as ex:
-                    errors += 1
                     logger.error(f'error parsing in {page}th page. Error: {ex}')
-                finally: page += 719
             else: logger.info('companies href was parsed')
 
     def parse_companies_info(self):

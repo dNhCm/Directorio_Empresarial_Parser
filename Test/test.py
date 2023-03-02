@@ -3,18 +3,20 @@ import requests
 from fake_useragent import UserAgent
 from lxml import html
 
-url = 'https://panel-empresarial.institutofomentomurcia.es/IFM-panel-directorio/directorio/view/97759'
+url = 'https://panel-empresarial.institutofomentomurcia.es/IFM-panel-directorio/directorio/listado.listado.pager/1'
 headers = {
     'User-Agent': UserAgent().random
 }
-xpath = '/html/body/div[2]/div/div[6]/div[1]/div[2]'
+xpath = '//*[@id="sectorActividad"]/*[@selected]/text()'
+session = requests.Session()
+site_session = 'BB892798DEA696B90FA1DA104E1B120B'
+cookie = {'domain': 'panel-empresarial.institutofomentomurcia.es', 'name': 'JSESSIONID', 'path': '/IFM-panel-directorio', 'value': site_session}
+session.cookies.set(**cookie)
 
-api = requests.get(url, headers)
-tree = html.document_fromstring(api.text)
-response = tree.xpath(xpath)
-print(response)
+def parse(session, url, headers, xpath):
+    api = session.get(url=url, headers=headers)
+    tree = html.document_fromstring(api.text)
+    response = tree.xpath(xpath)
+    print(response)
 
-response = [' BODEGAS Y VIÑEDOS DEL MEDITERRANEO, S.L.\n']
-txt = str(response)[2:-2]
-print(str(txt))
-print(txt.rstrip())
+parse(session, url, headers, xpath)
