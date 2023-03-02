@@ -46,13 +46,12 @@ class Dispatcher:
         System.preparation_datajson()
 
     @staticmethod
-    def parsing():
-        Activity = Activity()
-        Activity.main()
+    def working_on():
+        UI.main()
 
     def main(self):
         self.start()
-        self.parsing()
+        self.working_on()
 
 
 class System:
@@ -68,11 +67,12 @@ class System:
 
     @staticmethod
     def preparation_csvfile():
-        with open('data/data.csv', 'w', encoding='windows-1252', newline='') as csvfile:
-            csvfile = csv.writer(csvfile)
-            sections = ['activity', 'link'] + [section for section in config['COMPANY']]
-            csvfile.writerow(sections)
-        logger.info('data.csv was created successfully')
+        if not os.path.isfile('data/data.csv')
+            with open('data/data.csv', 'w', encoding='windows-1252', newline='') as csvfile:
+                csvfile = csv.writer(csvfile)
+                sections = ['activity', 'link'] + [section for section in config['COMPANY']]
+                csvfile.writerow(sections)
+            logger.info('data.csv was created successfully')
 
     @staticmethod
     def preparation_datajson():
@@ -90,20 +90,35 @@ class UI:
     @staticmethod
     def parse_companies_href(): ...
 
+    @staticmethod
+    def parse_companies_info(): ...
+
+    @staticmethod
+    def delete_cache():
+        System.delete_cache()
+
     def web(self):
-        print(
+        self.task = int(input(
             '''
 Какое задание сейчас выберете:
 Спарсить href - 1
-Спарсить существующие href - 2
+Спарсить info - 2
 Очистить кэш - 3
+Выйти - 4
             '''
-        )
+        ))
 
-    def main(self): ...
+    @classmethod
+    def main(self):
+        while True:
+            self.web()
+            if self.task == 1: self.parse_companies_href()
+            elif self.task == 2: self.parse_companies_info()
+            elif self.task == 3: self.delete_cache()
+            else: break
 
 
-class Activity():
+class Activity:
     def __init__(self):
         self.site_session = config['PARSE']['site_session']
 
