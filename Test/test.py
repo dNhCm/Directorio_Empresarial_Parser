@@ -15,6 +15,7 @@ session.cookies.set(**cookie)
 
 def parse(session, url, headers, xpath):
     api = session.get(url=url, headers=headers)
+    print(api.text)
     tree = html.document_fromstring(api.text)
     response = tree.xpath(xpath)
     print(response)

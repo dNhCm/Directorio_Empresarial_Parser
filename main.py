@@ -1,22 +1,19 @@
 
 # Imports
-import logging
-import os
-
+import logging, os
 import requests
 from lxml import html
 from fake_useragent import UserAgent
 from configparser import ConfigParser
 import csv, json
 
-from pip._internal.cli.spinners import open_spinner
 
 # Global vars
 config = ConfigParser()
 config.read('config.ini')
 
 # Global funcs
-def parse(session: requests.Session, url: str, headers: dict, xpathes: dict) -> dict:
+def parse(session: requests.Session, url: str, headers: dict, xpathes: dict[str: str]) -> dict[str: list[str]]:
     answer = {section: [] for section in xpathes}
 
     api = session.get(url=url, headers=headers)
@@ -47,6 +44,7 @@ class Dispatcher:
 
     @staticmethod
     def working_on():
+        Activity.init_site_session()
         UI.main()
 
     def main(self):
@@ -67,7 +65,7 @@ class System:
 
     @staticmethod
     def preparation_csvfile():
-        if not os.path.isfile('data/data.csv')
+        if not os.path.isfile('data/data.csv'):
             with open('data/data.csv', 'w', encoding='windows-1252', newline='') as csvfile:
                 csvfile = csv.writer(csvfile)
                 sections = ['activity', 'link'] + [section for section in config['COMPANY']]
@@ -77,35 +75,39 @@ class System:
     @staticmethod
     def preparation_datajson():
         if not os.path.isfile('data/data.json'):
-            data = {'last_panel_page': {}, 'companies_href': []}
+            data = {'last_panel_page': {}, 'companies_href': {}}
             with open('data/data.json', 'w') as datajson:
                 json.dump(data, datajson)
 
     @staticmethod
     def delete_cache():
         os.remove(path='data/data.json')
+        System.preparation_datajson()
 
 
 class UI:
     @staticmethod
-    def parse_companies_href(): ...
+    def parse_companies_href():
+        Activity.parse_companies_href()
 
     @staticmethod
-    def parse_companies_info(): ...
+    def parse_companies_info():
+        Activity.parse_companies_info()
 
     @staticmethod
     def delete_cache():
         System.delete_cache()
 
+    @classmethod
     def web(self):
         self.task = int(input(
-            '''
-Какое задание сейчас выберете:
+'''\nКакое задание сейчас выберете:
 Спарсить href - 1
 Спарсить info - 2
 Очистить кэш - 3
 Выйти - 4
-            '''
+
+Ваш Ответ: '''
         ))
 
     @classmethod
@@ -119,9 +121,11 @@ class UI:
 
 
 class Activity:
-    def __init__(self):
+    @classmethod
+    def init_site_session(self):
         self.site_session = config['PARSE']['site_session']
 
+    @classmethod
     def parse_companies_href(self):
         logger.info('preparating to parsing companies href')
         url = config['PARSE']['url']
@@ -137,7 +141,6 @@ class Activity:
             session.cookies.set(**cookie)
             logger.info('logged in was successful')
 
-            pages = parse(session=session, url=f'{url}1', headers=headers, xpathes={'pages': config['PARSE']['pages_xpath']})['pages'][0].split(' ')[-1]
             activity = parse(session=session, url=f'{url}1', headers=headers, xpathes={'activity': config['PARSE']['activity_xpath']})['activity'][0]
             try:
                 with open('data/data.json', 'r') as datajson:
@@ -146,23 +149,29 @@ class Activity:
                 last_page = 1
                 logger.error(f'may be no last page.. Error: {ex}')
 
+            page = last_page
+            errors = 0
             logger.info('start parsing...')
-            for page in range(last_page, pages):
+            while errors < 2:
                 try:
                     response = parse(session=session, url=f'{url}{page}', headers=headers, xpathes=xpathes)
                     if len(response['companies_href']) == 0: raise Exception
                     with open('data/data.json', 'r') as datajson:
                         data = json.load(datajson)
-                    data['companies_href'][activity] += response['companies_href']
+                    try: data['companies_href'][activity] += response['companies_href']
+                    except: data['companies_href'][activity] = response['companies_href']
                     data['last_panel_page'][activity] = page
                     with open('data/data.json', 'w') as datajson:
                         json.dump(data, datajson)
-
+                    errors = 0
                     logger.info(f'{page}th page was parsed succesfully')
                 except Exception as ex:
+                    errors += 1
                     logger.error(f'error parsing in {page}th page. Error: {ex}')
+                finally: page += 100
             else: logger.info('companies href was parsed')
 
+    @classmethod
     def parse_companies_info(self):
         logger.info('preparating to parsing companies info')
         url = config['PARSE']['main_url']
@@ -177,7 +186,7 @@ class Activity:
         
         logger.info('start to parsing href`s')
         for activity in data['companies_href']:
-            for href in data['companies_href']['activity']:
+            for href in data['companies_href'][activity]:
                 with requests.Session() as session:
                     response = parse(session=session, url=f'{url}{href}', headers=headers, xpathes=xpathes)
                     req = self.check_for_req(response=response)
@@ -202,16 +211,11 @@ class Activity:
         else: return True
 
 
-    def main(self):
-        self.parse_companies_href()
-        self.parse_companies_info()
-
-
 # Main
 def main():
     dp = Dispatcher()
     dp.main()
-    logger.info('! FINISHED !')
+    logger.info('\033[34m\033[43m\033[1m💙💛 Слава Україні! 💙💛\033[0m')
 
 if __name__ == '__main__':
     main()
