@@ -168,7 +168,7 @@ class Activity:
                 except Exception as ex:
                     errors += 1
                     logger.error(f'error parsing in {page}th page. Error: {ex}')
-                finally: page += 100
+                finally: page += 1
             else: logger.info('companies href was parsed')
 
     @classmethod
