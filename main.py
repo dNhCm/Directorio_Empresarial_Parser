@@ -189,7 +189,6 @@ class Activity:
             for href in data['companies_href'][activity]:
                 with requests.Session() as session:
                     response = parse(session=session, url=f'{url}{href}', headers=headers, xpathes=xpathes)
-                    print(response)
                     req = self.check_for_req(response=response)
                     response = transform(response=response)
                     response['activity'] = activity
