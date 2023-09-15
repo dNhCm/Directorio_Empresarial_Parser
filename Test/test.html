@@ -474,21 +474,21 @@ Traceback (most recent call last):
   File "C:\Projects\Python\Directorio_Empresarial_Parser\Test\test.py", line 19, in parse
     api = session.get(url=url, headers=headers)
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\sessions.py", line 600, in get
-    return self.request("GET", url, **kwargs)
+    return cls.request("GET", url, **kwargs)
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\sessions.py", line 587, in request
-    resp = self.send(prep, **send_kwargs)
+    resp = cls.send(prep, **send_kwargs)
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\sessions.py", line 723, in send
     history = [resp for resp in gen]
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\sessions.py", line 723, in <listcomp>
     history = [resp for resp in gen]
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\sessions.py", line 266, in resolve_redirects
-    resp = self.send(
+    resp = cls.send(
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\sessions.py", line 701, in send
     r = adapter.send(request, **kwargs)
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\requests\adapters.py", line 489, in send
     resp = conn.urlopen(
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
-    httplib_response = self._make_request(
+    httplib_response = cls._make_request(
   File "C:\Projects\Python\Directorio_Empresarial_Parser\venv\lib\site-packages\urllib3\connectionpool.py", line 449, in _make_request
     six.raise_from(e, None)
   File "<string>", line 3, in raise_from
@@ -497,15 +497,15 @@ Traceback (most recent call last):
   File "C:\Users\dhmag\AppData\Local\Programs\Python\Python310\lib\http\client.py", line 1374, in getresponse
     response.begin()
   File "C:\Users\dhmag\AppData\Local\Programs\Python\Python310\lib\http\client.py", line 318, in begin
-    version, status, reason = self._read_status()
+    version, status, reason = cls._read_status()
   File "C:\Users\dhmag\AppData\Local\Programs\Python\Python310\lib\http\client.py", line 279, in _read_status
-    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+    line = str(cls.fp.readline(_MAXLINE + 1), "iso-8859-1")
   File "C:\Users\dhmag\AppData\Local\Programs\Python\Python310\lib\socket.py", line 705, in readinto
-    return self._sock.recv_into(b)
+    return cls._sock.recv_into(b)
   File "C:\Users\dhmag\AppData\Local\Programs\Python\Python310\lib\ssl.py", line 1274, in recv_into
-    return self.read(nbytes, buffer)
+    return cls.read(nbytes, buffer)
   File "C:\Users\dhmag\AppData\Local\Programs\Python\Python310\lib\ssl.py", line 1130, in read
-    return self._sslobj.read(len, buffer)
+    return cls._sslobj.read(len, buffer)
 KeyboardInterrupt
 
 Process finished with exit code -1073741510 (0xC000013A: interrupted by Ctrl+C)
